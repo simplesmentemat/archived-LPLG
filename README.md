@@ -23,3 +23,10 @@ To install LPLGather, use the following command:
 
 ```bash
 pip install lplgather
+```
+
+### ENV
+Exemple:
+```bash
+API_HEADERS_AUTH="xxx"
+```

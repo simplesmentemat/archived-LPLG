@@ -21,10 +21,9 @@ from config.config import *
 
 logging.basicConfig(filename='Parse.log', level=WARNING)
 
-def fetch_schedule() -> LazyFrame:
+def get_schedule_data() -> LazyFrame:
     """
     Fetches the schedule data from the API and returns it as a LazyFrame.
-
     This function sends a GET request to the API endpoint for schedule data,
     processes the JSON response, and returns the schedule data as a LazyFrame.
 
@@ -34,7 +33,8 @@ def fetch_schedule() -> LazyFrame:
 
     Example:
         #   
-            >>> schedule_data = fetch_schedule()
+            >>> schedule_data = get_schedule_data()
+            >>> print(schedule_data)
     """
     try:
         response = requests.get(API_URL_ROOT + API_ENDPOINT_SCHEDULE, headers=API_HEADERS)
@@ -53,7 +53,7 @@ def fetch_schedule() -> LazyFrame:
         logging.error(f"Failed to decode JSON: {e}")
         return LazyFrame({})
 
-def fetch_stage(seasonId: int) -> LazyFrame:
+def get_stage_data(seasonId: int) -> LazyFrame:
     """
     Fetches stage information for a given season ID.
 
@@ -63,14 +63,10 @@ def fetch_stage(seasonId: int) -> LazyFrame:
     Returns:
         LazyFrame: A LazyFrame containing the stage information with columns 'stageId' and 'stageName'.
 
-    Returns:
-        LazyFrame: A LazyFrame containing the stage information with columns 'stageId' and 'stageName'.
-        Returns None if there is an error in the request.
-
     Example:
         #
-            >>> result = fetch_stage(190)
-            >>> result.collect()
+            >>> stage = get_stage_data(190)
+            >>> print(stage)
 
     """
     try:
@@ -88,10 +84,9 @@ def fetch_stage(seasonId: int) -> LazyFrame:
     except requests.exceptions.RequestException as e:
         return None
 
-def fetch_match(seasonId: int, stageId: int) -> LazyFrame:
+def get_match_data(seasonId: int, stageId: int) -> LazyFrame:
     """
     Fetches matches based on season and stage identifiers.
-
     This function retrieves a list of matches from a remote API based on the specified season and stage identifiers.
 
     Args:
@@ -103,9 +98,8 @@ def fetch_match(seasonId: int, stageId: int) -> LazyFrame:
 
     Example:
         #
-            >>> season_id = 190
-            >>> stage_id = 1
-            >>> matches = fetch_match(season_id, stage_id)
+            >>> matches = get_match_data(190, 1)
+            >>> print(matches)
     """
     seasonId_str = str(seasonId)
     stageId_str = str(stageId)
@@ -117,7 +111,7 @@ def fetch_match(seasonId: int, stageId: int) -> LazyFrame:
     matches = [msgspec.structs.asdict(match) for match in json_data.data]
     return LazyFrame(matches).collect(streaming=True)
 
-def fetch_teamDetails(matchid: int) -> LazyFrame:
+def get_team_details(matchid: int) -> LazyFrame:
     """
     Fetches and processes team details for a given match.
 
@@ -130,9 +124,9 @@ def fetch_teamDetails(matchid: int) -> LazyFrame:
     This function fetches team details for a specified match using the provided match ID. It sends an HTTP GET request to the API endpoint for match details, processes the response, and extracts team information. The data is then transformed into a LazyFrame for further analysis.
 
     Example:
-    ```python
-    match_details = fetch_teamDetails(12345)
-    ```
+        #
+            match_details = get_team_details(12345)
+    
 
     Returns:
         CSV: Returns csv file.
@@ -197,7 +191,7 @@ def fetch_teamDetails(matchid: int) -> LazyFrame:
             logging.warning(f"Arquivo {csv_path} já existe.")
     return 
 
-def fetch_player_details(matchid: int):
+def get_player_details(matchid: int):
     """
     This function fetches player details from a game match and saves them in CSV files.
 
@@ -541,11 +535,11 @@ def fetch_player_details(matchid: int):
             logging.warning(f"Arquivo {csv_path} já existe.")
 
 def processar_match(match_id):
-    fetch_teamDetails(match_id)
-    fetch_player_details(match_id)
+    get_team_details(match_id)
+    get_player_details(match_id)
 
 def processar_dados_lol(seasonId, stageId):
-    match_data = fetch_match(seasonId, stageId)
+    match_data = get_match_data(seasonId, stageId)
     match_ids = match_data.select("matchId").to_series().to_list()
     num_processos = 4 
     pool = Pool(processes=num_processos)

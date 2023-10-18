@@ -2,7 +2,10 @@ site_name: LPLG
 
 nav:
    - Home: index.md
-   - Parse: parse.md
+   - Functions: parse.md
 
 plugins:
-  - mkdocstrings 
+  - mkdocstrings
+
+theme:
+  name: 'material'

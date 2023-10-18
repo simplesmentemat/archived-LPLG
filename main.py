@@ -2,7 +2,7 @@ import asyncio
 from module.parse import *
 
 async def main():
-    player_df = processar_dados_lol(190,1)
-    
+    schedule_data = get_schedule_data()
+    print(schedule_data)
 if __name__ == "__main__":
     asyncio.run(main())

@@ -1,17 +1,22 @@
-# Welcome to MkDocs
+# Welcome to LPLG
 
-For full documentation visit [mkdocs.org](https://www.mkdocs.org).
+Welcome to the official documentation of LPLG. LPLG is a powerful tool for accessing player and team data from the LPL, using LOLQQ as its foundation. This documentation will help you understand how to use the key functionalities of the library.
 
 ## Commands
 
-* `mkdocs new [dir-name]` - Create a new project.
-* `mkdocs serve` - Start the live-reloading docs server.
-* `mkdocs build` - Build the documentation site.
-* `mkdocs -h` - Print help message and exit.
+* `get_schedule_data()` - Retrieve the season data.
+* `get_stage_data()` - Retrieve the stages that occurred.
+* `get_match_data()` - Retrieve the match IDs and matches.
+* `get_team_details()` - Generate a CSV file of team information.
+* `get_player_details()` - Generate a CSV file of player information.
 
-## Project layout
+## Project structure
 
-    mkdocs.yml    # The configuration file.
-    docs/
-        index.md  # The documentation homepage.
-        ...       # Other markdown pages, images and other files.
+    config/
+        config.py       
+    docs/       
+        ...             
+    module/
+        parse.py        
+    schemas/
+        schemas.py      

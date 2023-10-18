@@ -1,7 +1,9 @@
+from decouple import config
+API_HEADERS_AUTH = config('API_HEADERS_AUTH')
 API_URL_ROOT = "https://open.tjstats.com/match-auth-app/open/"
 
 API_HEADERS = {
-    "Authorization": "7935be4c41d8760a28c05581a7b1f570",
+    "Authorization": API_HEADERS_AUTH,
     "Content-Type": "application/json"
 }
 

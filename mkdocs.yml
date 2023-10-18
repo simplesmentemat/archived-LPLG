@@ -1,0 +1,8 @@
+site_name: LPLG
+
+nav:
+   - Home: index.md
+   - Parse: parse.md
+
+plugins:
+  - mkdocstrings 

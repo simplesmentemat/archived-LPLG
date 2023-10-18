@@ -22,6 +22,20 @@ from config.config import *
 logging.basicConfig(filename='Parse.log', level=WARNING)
 
 def fetch_schedule() -> LazyFrame:
+    """
+    Fetches the schedule data from the API and returns it as a LazyFrame.
+
+    This function sends a GET request to the API endpoint for schedule data,
+    processes the JSON response, and returns the schedule data as a LazyFrame.
+
+    Returns:
+        LazyFrame: A LazyFrame containing the schedule data with columns 'seasonId'
+        and 'seasonName'.
+
+    Example:
+        #   
+            >>> schedule_data = fetch_schedule()
+    """
     try:
         response = requests.get(API_URL_ROOT + API_ENDPOINT_SCHEDULE, headers=API_HEADERS)
         response.raise_for_status()
@@ -40,6 +54,25 @@ def fetch_schedule() -> LazyFrame:
         return LazyFrame({})
 
 def fetch_stage(seasonId: int) -> LazyFrame:
+    """
+    Fetches stage information for a given season ID.
+
+    Args:
+        seasonId (int): The season ID for which to fetch stage information.
+
+    Returns:
+        LazyFrame: A LazyFrame containing the stage information with columns 'stageId' and 'stageName'.
+
+    Returns:
+        LazyFrame: A LazyFrame containing the stage information with columns 'stageId' and 'stageName'.
+        Returns None if there is an error in the request.
+
+    Example:
+        #
+            >>> result = fetch_stage(190)
+            >>> result.collect()
+
+    """
     try:
         seasonId_str = str(seasonId)
         response = requests.get(API_URL_ROOT + API_ENDPOINT_STAGE + "?seasonId=" + seasonId_str, headers=API_HEADERS)
@@ -55,18 +88,56 @@ def fetch_stage(seasonId: int) -> LazyFrame:
     except requests.exceptions.RequestException as e:
         return None
 
-def fetch_match(seasonId:int, stageId: int) -> LazyFrame:
-        seasonId_str = str(seasonId)
-        stageId_str = str(stageId)
-        response = requests.get(
-            API_URL_ROOT + API_ENDPOINT_MATCH + "?seasonId=" + seasonId_str + "&stageId=" +
-            stageId_str + "&teamId&searchTime&searchEndTime&page&size", headers=API_HEADERS)
-        response.raise_for_status()
-        json_data = msgspec.json.decode(response.content, type=MatchResponse)
-        matches = [msgspec.structs.asdict(match) for match in json_data.data]
-        return LazyFrame(matches).collect(streaming=True)
+def fetch_match(seasonId: int, stageId: int) -> LazyFrame:
+    """
+    Fetches matches based on season and stage identifiers.
+
+    This function retrieves a list of matches from a remote API based on the specified season and stage identifiers.
+
+    Args:
+        seasonId (int): The identifier of the season for which matches are to be fetched.
+        stageId (int): The identifier of the stage within the season.
+
+    Returns:
+        LazyFrame: A LazyFrame containing the retrieved matches.
+
+    Example:
+        #
+            >>> season_id = 190
+            >>> stage_id = 1
+            >>> matches = fetch_match(season_id, stage_id)
+    """
+    seasonId_str = str(seasonId)
+    stageId_str = str(stageId)
+    response = requests.get(
+        API_URL_ROOT + API_ENDPOINT_MATCH + "?seasonId=" + seasonId_str + "&stageId=" +
+        stageId_str + "&teamId&searchTime&searchEndTime&page&size", headers=API_HEADERS)
+    response.raise_for_status()
+    json_data = msgspec.json.decode(response.content, type=MatchResponse)
+    matches = [msgspec.structs.asdict(match) for match in json_data.data]
+    return LazyFrame(matches).collect(streaming=True)
 
 def fetch_teamDetails(matchid: int) -> LazyFrame:
+    """
+    Fetches and processes team details for a given match.
+
+    Args:
+        matchid (int): The unique identifier of the match.
+
+    Returns:
+        LazyFrame: A LazyFrame containing team details for the match.
+
+    This function fetches team details for a specified match using the provided match ID. It sends an HTTP GET request to the API endpoint for match details, processes the response, and extracts team information. The data is then transformed into a LazyFrame for further analysis.
+
+    Example:
+    ```python
+    match_details = fetch_teamDetails(12345)
+    ```
+
+    Returns:
+        CSV: Returns csv file.
+
+    """
     matchid = str(matchid)
     response = requests.get(API_URL_ROOT + API_ENDPOINT_DETAILS + matchid, headers=API_HEADERS)
     response.raise_for_status()
@@ -127,6 +198,15 @@ def fetch_teamDetails(matchid: int) -> LazyFrame:
     return 
 
 def fetch_player_details(matchid: int):
+    """
+    This function fetches player details from a game match and saves them in CSV files.
+
+    Args:
+        matchid (int): The ID of the match for which you want to retrieve details.
+
+    Returns:
+        CSV: Returns a CSV file containing all games of the BO, and all player information within those games.
+    """
     matchid = str(matchid)
     response = requests.get(API_URL_ROOT + API_ENDPOINT_DETAILS + matchid, headers=API_HEADERS)
     response.raise_for_status()

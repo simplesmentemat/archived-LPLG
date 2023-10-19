@@ -1,6 +1,6 @@
 # Welcome to LPLG
 
-Welcome to the official documentation of LPLG. LPLG is a powerful tool for accessing player and team data from the LPL, using LOLQQ as its foundation. This documentation will help you understand how to use the key functionalities of the library.
+Welcome to the official documentation of LPLG. LPLG is a powerful tool for accessing player and team data from the LPL, using LOLQQ as the database. This documentation will help you understand how to use the key functionalities of the library.
 
 ## Commands
 

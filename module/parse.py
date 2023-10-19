@@ -534,11 +534,7 @@ def get_player_details(matchid: int):
         except FileExistsError:
             logging.warning(f"Arquivo {csv_path} já existe.")
 
-def processar_match(match_id):
-    get_team_details(match_id)
-    get_player_details(match_id)
 
-def processar_dados_lol(seasonId, stageId):
     match_data = get_match_data(seasonId, stageId)
     match_ids = match_data.select("matchId").to_series().to_list()
     num_processos = 4 

@@ -12,7 +12,10 @@ Para instalar basta seguir o comando:
 
 ```bash
 pip install LPLGather
-``` 
+```
+
+##DOCS
+[Documentação](https://matpaulods.github.io/LPLG/)
 ### ENG
 
 The LPLGather library is a powerful tool that gathers and organizes data from the Professional League of Legends (LPL) in a convenient CSV format. With this library, you can easily extract up-to-date information and league statistics for analysis, data visualizations, or any other purpose you may need. Simplify the acquisition of LPL data and enhance the efficiency of your project with LPLGather.

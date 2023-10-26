@@ -25,7 +25,7 @@ To install LPLGather, use the following command:
 pip install LPLG
 ```
 
-### ENV
+### .ENV
 ```bash
 API_HEADERS_AUTH="xxx"
 ```

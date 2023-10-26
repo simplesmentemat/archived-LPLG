@@ -36,7 +36,7 @@ API_HEADERS_AUTH="xxx"
 ```
 Exemple:
 ```py
-from LPLG.parse import get_match_data
-df = get_match_data(190,1)
+from lplg import parse
+df = parse.get_match_data(190,1)
 print(df)
 ```

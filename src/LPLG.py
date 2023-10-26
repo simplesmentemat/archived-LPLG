@@ -12,10 +12,8 @@ from polars import (
     Boolean
 )
 import logging
-from multiprocessing import Pool
 from logging import WARNING
 import msgspec
-import os
 from schemas.schemas import *
 from config.config import *
 
@@ -37,14 +35,15 @@ def get_schedule_data() -> LazyFrame:
             >>> print(schedule_data)
     """
     try:
+
         response = requests.get(API_URL_ROOT + API_ENDPOINT_SCHEDULE, headers=API_HEADERS)
         response.raise_for_status()
-        json_data = msgspec.json.decode(response.text, type=ScheduleResponse)
+        json_data = msgspec.json.decode(response.content, type=ScheduleResponse)
         data_list = [{'seasonId': str(info.seasonId), 'seasonName': info.seasonName
                       } for info in json_data.data]
         df = LazyFrame(data_list
                           ).with_columns(col('seasonId').cast(UInt32), col("seasonName"
-                                                                                            ).cast(Utf8)).collect(streaming=True)
+                                                                                       ).cast(Utf8)).collect(streaming=True)
         return df
     except requests.exceptions.RequestException as e:
         logging.error(f"Failed to make the request: {e}")
@@ -533,11 +532,4 @@ def get_player_details(matchid: int):
             df.write_csv(csv_path)
         except FileExistsError:
             logging.warning(f"Arquivo {csv_path} já existe.")
-
-
-    match_data = get_match_data(seasonId, stageId)
-    match_ids = match_data.select("matchId").to_series().to_list()
-    num_processos = 4 
-    pool = Pool(processes=num_processos)
-    pool.map(processar_match, match_ids)
 

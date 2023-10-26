@@ -26,7 +26,12 @@ pip install LPLG
 ```
 
 ### ENV
-Exemple:
 ```bash
 API_HEADERS_AUTH="xxx"
+```
+Exemple:
+```py
+from LPLG.parse import get_match_data
+df = get_match_data(190,1)
+print(df)
 ```

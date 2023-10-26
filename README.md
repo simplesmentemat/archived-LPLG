@@ -11,7 +11,7 @@ A biblioteca LPLGather é uma ferramenta poderosa que coleta e organiza dados da
 Para instalar basta seguir o comando:
 
 ```bash
-pip install LPLGather
+pip install LPLG
 ```
 
 ### ENG
@@ -23,7 +23,7 @@ The LPLGather library is a powerful tool that gathers and organizes data from th
 To install LPLGather, use the following command:
 
 ```bash
-pip install LPLGather
+pip install LPLG
 ```
 
 # DOCS

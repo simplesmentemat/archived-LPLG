@@ -14,7 +14,7 @@ Para instalar basta seguir o comando:
 pip install LPLGather
 ```
 
-## DOCS
+# DOCS
 
 [Documentação](https://matpaulods.github.io/LPLG/)
 
@@ -29,9 +29,6 @@ To install LPLGather, use the following command:
 ```bash
 pip install LPLGather
 ```
-## DOCS
-
-[Documentation](https://matpaulods.github.io/LPLG/)
 
 ### .ENV
 ```bash

@@ -14,8 +14,9 @@ from polars import (
 import logging
 from logging import WARNING
 import msgspec
-from schemas.schemas import *
-from config.config import *
+from .schemas.schemas import *
+from .config.config import *
+from .func.func import *
 
 logging.basicConfig(filename='Parse.log', level=WARNING)
 
@@ -213,16 +214,15 @@ def get_player_details(matchid: int):
     ]
 
     DF_PLAYER_INFO = (
-        LazyFrame(PlayerInfo_list)
-        .select([
+    LazyFrame(PlayerInfo_list)
+    .select([
         'matchid',
          'bo',
           'playerId',
            'playerName',
             'playerAvatar',
              'heroId',
-              'heroName',
-               'heroTitle',
+              col('heroId').apply(map_hero_name).alias('heroName'),
                 'spell1Name',
                  'spell1Id', 
                   'spell1IconKey',
@@ -232,26 +232,25 @@ def get_player_details(matchid: int):
                       'accountId',
                        'minionKilled'
                        ])
-        .with_columns
-        (
-            col('matchid').cast(UInt16),
-            col('bo').cast(UInt8),
-            col('playerId').cast(UInt16),
-            col('playerName').cast(Utf8),
-            col('playerAvatar').cast(Utf8),
-            col('heroId').cast(UInt16),
-            col('heroName').cast(Utf8),
-            col('heroTitle').cast(Utf8),
-            col('spell1Name').cast(Utf8),
-            col('spell1Id').cast(UInt8),
-            col('spell1IconKey').cast(Utf8),
-            col('spell2Name').cast(Utf8),
-            col('spell2Id').cast(UInt8),
-            col('spell2IconKey').cast(Utf8),
-            col('accountId').cast(UInt8),
-            col('minionKilled').cast(UInt16)
-        )
+    .with_columns
+    (
+        col('matchid').cast(UInt16),
+        col('bo').cast(UInt8),
+        col('playerId').cast(UInt16),
+        col('playerName').cast(Utf8),
+        col('playerAvatar').cast(Utf8),
+        col('heroId').cast(UInt16),
+        col('spell1Name').cast(Utf8),
+        col('spell1Id').cast(UInt8),
+        col('spell1IconKey').cast(Utf8),
+        col('spell2Name').cast(Utf8),
+        col('spell2Id').cast(UInt8),
+        col('spell2IconKey').cast(Utf8),
+        col('accountId').cast(UInt8),
+        col('minionKilled').cast(UInt16)
     )
+)
+
     
     PlayerTrinketItem_list = [
     {

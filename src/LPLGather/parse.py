@@ -1,3 +1,5 @@
+__all__ = ['get_schedule_data', 'get_stage_data', 'get_match_data', 'get_team_details', 'get_player_details']
+
 import requests
 from polars import (
     col,
@@ -9,14 +11,15 @@ from polars import (
     Int16,
     LazyFrame, 
     Float32, 
-    Boolean
+    Boolean,
+    lit
 )
 import logging
 from logging import WARNING
 import msgspec
-from .schemas.schemas import *
-from .config.config import *
-from .func.func import *
+from ._schemas._schemas import *
+from ._config._config import *
+from ._func._func import *
 
 logging.basicConfig(filename='Parse.log', level=WARNING)
 
@@ -109,29 +112,29 @@ def get_match_data(seasonId: int, stageId: int) -> LazyFrame:
     response.raise_for_status()
     json_data = msgspec.json.decode(response.content, type=MatchResponse)
     matches = [msgspec.structs.asdict(match) for match in json_data.data]
-    return LazyFrame(matches).collect(streaming=True)
+    return LazyFrame(matches).collect(streaming=True).with_columns(lit(seasonId).alias("seasonId"))
 
-def get_team_details(matchid: int) -> LazyFrame:
+def get_team_details(matchid: int, seasonId: int, stageId: int, format: str = 'lazyframe') -> LazyFrame:
     """
-    Fetches and processes team details for a given match.
-
+    Fetches and processes team details for a given match and allows the user to choose 
+    the output format: 'csv', 'parquet', or 'lazyframe' (default).
+    
     Args:
         matchid (int): The unique identifier of the match.
+        seasonId (int): The season ID.
+        stageId (int): The stage ID.
+        format (str): The format of the output. Options are 'csv', 'parquet', 'lazyframe'.
+                      Default is 'lazyframe'.
 
     Returns:
-        LazyFrame: A LazyFrame containing team details for the match.
+        Depending on the format chosen:
+        - If 'lazyframe', returns a LazyFrame containing team details for the match.
+        - If 'csv' or 'parquet', writes the file to disk and returns None.
 
-    This function fetches team details for a specified match using the provided match ID. It sends an HTTP GET request to the API endpoint for match details, processes the response, and extracts team information. The data is then transformed into a LazyFrame for further analysis.
-
-    Example:
-        #
-            match_details = get_team_details(12345)
-    
-
-    Returns:
-        CSV: Returns csv file.
-
+    The function fetches team details for a specified match using the provided match ID.
+    It processes the data and allows the user to choose the output format.
     """
+
     matchid = str(matchid)
     response = requests.get(API_URL_ROOT + API_ENDPOINT_DETAILS + matchid, headers=API_HEADERS)
     response.raise_for_status()
@@ -139,6 +142,8 @@ def get_team_details(matchid: int) -> LazyFrame:
     json_data = msgspec.json.decode(response.content, type=DetailsResponse)
     team_list = [
     {
+        'seasonId':seasonId,
+        'stageId':stageId,
         'matchId': matchid,
         'bo': match_info.bo,
         'teamId': team.teamId,
@@ -172,34 +177,38 @@ def get_team_details(matchid: int) -> LazyFrame:
                     col('ban_4').cast(UInt16),
                     col('ban_5').cast(UInt16)).collect(streaming=True)
     
-    folder_path = os.path.join('jogos', str(matchid))
-    
+    folder_path = os.path.join('Games', str(seasonId), str(stageId), str(matchid))
     os.makedirs(folder_path, exist_ok=True)
 
-            
-    df_list = [
-                ('Team_Info', DF_TEAM_INFO)
-            ]
+    if format.lower() == 'csv':
+        csv_path = os.path.join(folder_path, 'Team_info.csv')
+        DF_TEAM_INFO.write_csv(csv_path)
+        message = f"CSV file saved successfully at {csv_path}."
+    elif format.lower() == 'parquet':
+        parquet_path = os.path.join(folder_path, 'Team_info.parquet')
+        DF_TEAM_INFO.write_parquet(parquet_path)
+        message = f"Parquet file saved successfully at {parquet_path}."
+    elif format.lower() == 'lazyframe':
+        return DF_TEAM_INFO
+    else:
+        raise ValueError("Unsupported format. Choose 'csv', 'parquet', or 'lazyframe'.")
+    return None
 
-    for df_name, df in df_list:
-        csv_filename = f'{df_name}.csv'
-        csv_path = os.path.join(folder_path, csv_filename)
-
-        try:
-            df.write_csv(csv_path)
-        except FileExistsError:
-            logging.warning(f"Arquivo {csv_path} já existe.")
-    return 
-
-def get_player_details(matchid: int):
+def get_player_details(matchid: int, seasonId: int, stageId: int, format: str = 'lazyframe') -> LazyFrame:
     """
-    This function fetches player details from a game match and saves them in CSV files.
+    This function fetches player details from a game match.
 
     Args:
         matchid (int): The ID of the match for which you want to retrieve details.
+        seasonId (int): Season ID for the match.
+        stageId (int): Stage ID for the match.
+        format (str): The format of the output file. Options are 'csv', 'parquet' or 'Lazyframe'. Default is 'Lazyframe'.
 
     Returns:
-        CSV: Returns a CSV file containing all games of the BO, and all player information within those games.
+        Depending on the chosen format:
+        - If 'csv', returns the path to the CSV file containing all games of the BO, and all player information within those games.
+        - If 'parquet', returns the path to the Parquet file containing all games of the BO, and all player information within those games.
+        - None: If an error occurs or the format is not supported.
     """
     matchid = str(matchid)
     response = requests.get(API_URL_ROOT + API_ENDPOINT_DETAILS + matchid, headers=API_HEADERS)
@@ -221,31 +230,21 @@ def get_player_details(matchid: int):
           'playerId',
            'playerName',
             'playerAvatar',
-             'heroId',
-              col('heroId').apply(map_hero_name).alias('heroName'),
-                'spell1Name',
-                 'spell1Id', 
-                  'spell1IconKey',
-                   'spell2Name',
-                    'spell2Id',
-                     'spell2IconKey',
+             col('heroId').map_dict(CHAMPION_MAP, return_dtype=Utf8).alias('ChampionName'),
+             col('spell1Name').map_dict(SS_MAP, return_dtype=Utf8).alias('spell1Name'),
+             col('spell2Name').map_dict(SS_MAP, return_dtype=Utf8).alias('spell2Name'),
                       'accountId',
                        'minionKilled'
                        ])
     .with_columns
     (
-        col('matchid').cast(UInt16),
+        col('matchid').cast(UInt32),
         col('bo').cast(UInt8),
-        col('playerId').cast(UInt16),
+        col('playerId').cast(UInt32),
         col('playerName').cast(Utf8),
         col('playerAvatar').cast(Utf8),
-        col('heroId').cast(UInt16),
         col('spell1Name').cast(Utf8),
-        col('spell1Id').cast(UInt8),
-        col('spell1IconKey').cast(Utf8),
         col('spell2Name').cast(Utf8),
-        col('spell2Id').cast(UInt8),
-        col('spell2IconKey').cast(Utf8),
         col('accountId').cast(UInt8),
         col('minionKilled').cast(UInt16)
     )
@@ -254,6 +253,8 @@ def get_player_details(matchid: int):
     
     PlayerTrinketItem_list = [
     {
+        'seasonId':seasonId,
+        'stageId':stageId,
         'matchid': matchid,
         'bo': match_info.bo,
         'PlayerId': Player.playerId,
@@ -268,19 +269,29 @@ def get_player_details(matchid: int):
     DF_PLAYER_TRINKET = (
         LazyFrame(PlayerTrinketItem_list
                                      ).unnest("trinketItem"
-                                              ).with_columns
+                                              ).select(
+                                                  [
+                                                      'seasonId',
+                                                      'stageId',
+                                                      'matchid',
+                                                      'bo',
+                                                      'PlayerId',
+                                                      'PlayerName',
+                                                      col('itemId').map_dict(ITEM_MAP, return_dtype=Utf8).alias('itemName')]
+                                                  ).with_columns
         (
-            col('matchid').cast(UInt16),
+            col('matchid').cast(UInt32),
             col('bo').cast(UInt8),
-            col('PlayerId').cast(UInt16),
+            col('PlayerId').cast(UInt32),
             col('PlayerName').cast(Utf8),
-            col('itemId').cast(UInt16),
             col('itemName').cast(Utf8)
         )
     )
     
     PlayerItem_list = [
     {
+        'seasonId':seasonId,
+        'stageId':stageId,
         'matchid': matchid,
         'bo': match_info.bo,
         'PlayerId': Player.playerId,
@@ -295,20 +306,29 @@ def get_player_details(matchid: int):
     
     DF_PLAYER_ITEM = (
         LazyFrame(PlayerItem_list)
-        .unnest('items')
+        .unnest('items').select([
+            'seasonId',
+            'stageId',
+            'matchid',
+                'bo',
+                    'PlayerId',
+                        'PlayerName',
+                            col('itemId').map_dict(ITEM_MAP, return_dtype=Utf8).alias('itemName')
+        ])
         .with_columns(
-            col('matchid').cast(UInt16),
+            col('matchid').cast(UInt32),
             col('bo').cast(UInt8),
-            col('PlayerId').cast(UInt16),
+            col('PlayerId').cast(UInt32),
             col('PlayerName').cast(Utf8),
-            col('itemId').cast(Utf8),
-            col('itemName').cast(Utf8)
+            col('itemName').cast(Utf8),
         )
     )
     
     
     PlayerperkStyle_list = [
     {
+        'seasonId':seasonId,
+        'stageId':stageId,
         'matchid': matchid,
         'bo': match_info.bo,
         'PlayerId': Player.playerId,
@@ -328,9 +348,9 @@ def get_player_details(matchid: int):
     ).drop('styleEn').drop('styleId').unnest("perkSubStyle").with_columns(
         perkSubStyle_styleId= col('styleId'),
         perkSubStyle_styleEn= col('styleEn')).drop('styleEn').drop('styleId').with_columns(
-                                  col('matchid').cast(UInt16),
+                                  col('matchid').cast(UInt32),
                                   col('bo').cast(UInt8),
-                                  col('PlayerId').cast(UInt16),
+                                  col('PlayerId').cast(UInt32),
                                   col('PlayerName').cast(Utf8),
                                   col('perkStyle_styleId').cast(UInt16),
                                   col('perkStyle_styleEn').cast(Utf8),
@@ -339,6 +359,8 @@ def get_player_details(matchid: int):
 
     PlayerperkRunes_list = [
     {
+        'seasonId':seasonId,
+        'stageId':stageId,
         'matchid': matchid,
         'bo': match_info.bo,
         'PlayerId': Player.playerId,
@@ -352,15 +374,17 @@ def get_player_details(matchid: int):
     ]
 
     DF_PLAYER_PERKRUNES = LazyFrame(PlayerperkRunes_list).unnest('perkRunes').with_columns(
-                                  col('matchid').cast(UInt16),
+                                  col('matchid').cast(UInt32),
                                   col('bo').cast(UInt8),
-                                  col('PlayerId').cast(UInt16),
+                                  col('PlayerId').cast(UInt32),
                                   col('PlayerName').cast(Utf8),
                                   col('runeId').cast(UInt16),
                                   col('iconKey').cast(Utf8))
     
     PlayerbattleDetail_list = [
     {
+        'seasonId':seasonId,
+        'stageId':stageId,
         'matchid': matchid,
         'bo': match_info.bo,
         'PlayerId': Player.playerId,
@@ -373,9 +397,9 @@ def get_player_details(matchid: int):
     ]
 
     DF_PLAYER_BATTLE_DETAIL = LazyFrame(PlayerbattleDetail_list).unnest('battleDetail').with_columns(
-                                  col('matchid').cast(UInt16),
+                                  col('matchid').cast(UInt32),
                                   col('bo').cast(UInt8),
-                                  col('PlayerId').cast(UInt16),
+                                  col('PlayerId').cast(UInt32),
                                   col('PlayerName').cast(Utf8),
                                   col('kills').cast(UInt8),
                                   col('death').cast(UInt8),
@@ -389,6 +413,8 @@ def get_player_details(matchid: int):
 
     PlayerdamageDetail_list = [
     {
+        'seasonId':seasonId,
+        'stageId':stageId,
         'matchid': matchid,
         'bo': match_info.bo,
         'PlayerId': Player.playerId,
@@ -401,9 +427,9 @@ def get_player_details(matchid: int):
     ] 
     
     DF_PLAYER_DAMEGE_DETAIL = LazyFrame(PlayerdamageDetail_list).unnest('damageDetail').with_columns(
-                                  col('matchid').cast(UInt16),
+                                  col('matchid').cast(UInt32),
                                   col('bo').cast(UInt8),
-                                  col('PlayerId').cast(UInt16),
+                                  col('PlayerId').cast(UInt32),
                                   col('PlayerName').cast(Utf8),
                                   col('heroDamage').cast(Float32),
                                   col('heroPhysicalDamage').cast(Float32),
@@ -423,6 +449,8 @@ def get_player_details(matchid: int):
 
     PlayerDamageTakenDetail_list = [
     {
+        'seasonId':seasonId,
+        'stageId':stageId,
         'matchid': matchid,
         'bo': match_info.bo,
         'PlayerId': Player.playerId,
@@ -435,9 +463,9 @@ def get_player_details(matchid: int):
     ] 
     
     DF_DEMAGE_TAKEN_DETAIL = LazyFrame(PlayerDamageTakenDetail_list).unnest('DamageTakenDetail').with_columns(
-                                  col('matchid').cast(UInt16),
+                                  col('matchid').cast(UInt32),
                                   col('bo').cast(UInt8),
-                                  col('PlayerId').cast(UInt16),
+                                  col('PlayerId').cast(UInt32),
                                   col('PlayerName').cast(Utf8),
                                   col('damageTaken').cast(Float32),
                                   col('physicalDamageTaken').cast(Float32),
@@ -449,6 +477,8 @@ def get_player_details(matchid: int):
 
     PlayerotherDetail_list = [
     {
+        'seasonId':seasonId,
+        'stageId':stageId,
         'matchid': matchid,
         'bo': match_info.bo,
         'PlayerId': Player.playerId,
@@ -461,9 +491,9 @@ def get_player_details(matchid: int):
     ] 
     
     DF_PLAYER_OTHER_DETAIL = LazyFrame(PlayerotherDetail_list).unnest('otherDetail').with_columns(
-                                  col('matchid').cast(UInt16),
+                                  col('matchid').cast(UInt32),
                                   col('bo').cast(UInt8),
-                                  col('PlayerId').cast(UInt16),
+                                  col('PlayerId').cast(UInt32),
                                   col('PlayerName').cast(Utf8),
                                   col('golds').cast(UInt16),
                                   col('oppositeGoldsDiff').cast(Int16),
@@ -481,6 +511,8 @@ def get_player_details(matchid: int):
 
     PlayervisionDetail_list = [
     {
+        'seasonId':seasonId,
+        'stageId':stageId,
         'matchid': matchid,
         'bo': match_info.bo,
         'PlayerId': Player.playerId,
@@ -493,9 +525,9 @@ def get_player_details(matchid: int):
 ]   
     
     DF_PLAYER_VISION_DETAIL = LazyFrame(PlayervisionDetail_list).unnest('visionDetail').with_columns(
-                                  col('matchid').cast(UInt16),
+                                  col('matchid').cast(UInt32),
                                   col('bo').cast(UInt8),
-                                  col('PlayerId').cast(UInt16),
+                                  col('PlayerId').cast(UInt32),
                                   col('PlayerName').cast(Utf8),
                                   col('wardPlaced').cast(UInt8),
                                   col('wardKilled').cast(UInt8),
@@ -508,7 +540,7 @@ def get_player_details(matchid: int):
     
     finals_dfs = collect_all(DF_LIST, comm_subplan_elim=False, streaming=True)
     
-    folder_path = os.path.join('jogos', str(matchid))
+    folder_path = os.path.join('Games', str(seasonId), str(stageId), str(matchid))
     os.makedirs(folder_path, exist_ok=True)
     df_list = [
                 ('Player_Info', finals_dfs[0]),
@@ -522,13 +554,24 @@ def get_player_details(matchid: int):
                 ('Player_Other_Detail', finals_dfs[8]),
                 ('Player_Vision_Detail', finals_dfs[9]),
             ]
+    if format.lower() == 'lazyframe':
+        return {name: df for name, df in df_list}
+    saved_paths = []
+    try:
+        for df_name, df in df_list:
+            if format.lower() == 'csv':
+                file_path = os.path.join(folder_path, f'{df_name}.csv')
+                df.write_csv(file_path)
+            elif format.lower() == 'parquet':
+                file_path = os.path.join(folder_path, f'{df_name}.parquet')
+                df.write_parquet(file_path)
+            else:
+                raise ValueError("Unsupported format. Choose 'csv' or 'parquet'.")
+            saved_paths.append(file_path)
 
-    for df_name, df in df_list:
-        csv_filename = f'{df_name}.csv'
-        csv_path = os.path.join(folder_path, csv_filename)
-
-        try:
-            df.write_csv(csv_path)
-        except FileExistsError:
-            logging.warning(f"Arquivo {csv_path} já existe.")
+        if format.lower() in ['csv', 'parquet']:
+            return ', '.join(saved_paths)
+    except Exception as e:
+        print(f"An error occurred while saving the files: {e}")
+        return None
 

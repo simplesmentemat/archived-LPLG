@@ -83,7 +83,7 @@ class IDGetter:
             if url_type in ["champion", "summoner"]:
                 combined_dict[url_type].update(
                     {
-                        numpy.int16(details["key"]): details["name"]
+                        numpy.int16(details["key"]): details["id"]
                         for _, details in response["data"].items()
                     }
                 )
@@ -135,6 +135,20 @@ RUNES_MAP = IN_GAME_DICT["runes"]
 CHAMPION_MAP = IN_GAME_DICT["champion"]
 ITEM_MAP = IN_GAME_DICT["item"]
 SUMMONER_MAP = IN_GAME_DICT["summoner"]
-
-def map_hero_name(hero_id):
-    return CHAMPION_MAP.get(hero_id, "Unknown")
+SS_MAP = {
+    "SummonerBoost": "Cleanse",
+    "SummonerExhaust": "Exhaust",
+    "SummonerFlash": "Flash",
+    "SummonerFlashPerksHextechFlashtraptionV2": "Hexflash",
+    "SummonerHaste": "Ghost",
+    "SummonerHeal": "Heal",
+    "SummonerSmite": "Smite",
+    "S5_SummonerSmitePlayerGanker": "Unleashed Smite",
+    "SummonerSmiteAvatarUtility": "Primal Smite Gustwalker",
+    "SummonerSmiteAvatarOffensive": "Primal Smite Scorchclaw",
+    "SummonerTeleport": "Teleport",
+    "S12_SummonerTeleportUpgrade": "Unleashed Teleport",
+    "SummonerMana": "Clarity",
+    "SummonerDot": "Ignite",
+    "SummonerBarrier": "Barrier",
+}

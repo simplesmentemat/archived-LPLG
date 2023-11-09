@@ -40,3 +40,7 @@ from LPLGather import parse
 df = parse.get_match_data(190,1)
 print(df)
 ```
+
+### Agradecimentos
+
+Agradeço a rMaze pelo codigo do champion map.

@@ -6,6 +6,7 @@ script_path = sys.argv[0]
 directory = os.path.dirname(script_path)
 env_path = os.path.join(directory, '.env')
 load_dotenv(env_path)
+
 API_HEADERS_AUTH = os.getenv('API_HEADERS_AUTH')
 API_URL_ROOT = "https://open.tjstats.com/match-auth-app/open/"
 

@@ -354,6 +354,10 @@ schemas/
 <p>Here's an example to demonstrate the usage of the newly added functions:</p>
 <pre><code class="language-python">from LPLGather import parse
 
+# without write_csv or write_parquet
+df_example = parse.get_match_data(190, 1)
+print(df_example)
+
 # Using write_csv() to save data as a CSV file
 df_example_csv = parse.get_match_data(190, 1).write_csv()
 print(df_example_csv)

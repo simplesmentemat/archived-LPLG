@@ -20,6 +20,7 @@ import msgspec
 from ._schemas._schemas import *
 from ._config._config import *
 from ._func._func import *
+from ._func._utils import TeamDataSaver, PlayerDetailsSaver
 
 logging.basicConfig(filename='Parse.log', level=WARNING)
 
@@ -114,27 +115,32 @@ def get_match_data(seasonId: int, stageId: int) -> LazyFrame:
     matches = [msgspec.structs.asdict(match) for match in json_data.data]
     return LazyFrame(matches).collect(streaming=True).with_columns(lit(seasonId).alias("seasonId"))
 
-def get_team_details(matchid: int, seasonId: int, stageId: int, format: str = 'lazyframe') -> LazyFrame:
+def get_team_details(matchid: int, seasonId: int, stageId: int) -> TeamDataSaver:
     """
-    Fetches and processes team details for a given match and allows the user to choose 
-    the output format: 'csv', 'parquet', or 'lazyframe' (default).
-    
+    Fetches and processes team details for a given match, returning a DataSaver object
+    which can be used to save the data in CSV or Parquet format.
+
+    This function retrieves team details for a specific match using the provided match ID,
+    season ID, and stage ID. It processes the data into a LazyFrame and encapsulates it within
+    a DataSaver object for convenient saving in different formats.
+
     Args:
         matchid (int): The unique identifier of the match.
         seasonId (int): The season ID.
         stageId (int): The stage ID.
-        format (str): The format of the output. Options are 'csv', 'parquet', 'lazyframe'.
-                      Default is 'lazyframe'.
 
     Returns:
-        Depending on the format chosen:
-        - If 'lazyframe', returns a LazyFrame containing team details for the match.
-        - If 'csv' or 'parquet', writes the file to disk and returns None.
+        An object containing the processed LazyFrame and methods for saving
+        the data in CSV or Parquet format. The DataSaver object also allows
+        for printing the LazyFrame to the console when the object is called in
+        a print statement or evaluated in an interactive environment.
 
-    The function fetches team details for a specified match using the provided match ID.
-    It processes the data and allows the user to choose the output format.
+    Example:
+            >>> df = get_team_details(12345, 2023, 1)
+            >>> df.write_csv("team_details.csv")  
+            >>> df.write_parquet("team_details.parquet")  
+            >>> print(df)  
     """
-
     matchid = str(matchid)
     response = requests.get(API_URL_ROOT + API_ENDPOINT_DETAILS + matchid, headers=API_HEADERS)
     response.raise_for_status()
@@ -179,22 +185,9 @@ def get_team_details(matchid: int, seasonId: int, stageId: int, format: str = 'l
     
     folder_path = os.path.join('Games', str(seasonId), str(stageId), str(matchid))
     os.makedirs(folder_path, exist_ok=True)
+    return TeamDataSaver(DF_TEAM_INFO, folder_path)
 
-    if format.lower() == 'csv':
-        csv_path = os.path.join(folder_path, 'Team_info.csv')
-        DF_TEAM_INFO.write_csv(csv_path)
-        message = f"CSV file saved successfully at {csv_path}."
-    elif format.lower() == 'parquet':
-        parquet_path = os.path.join(folder_path, 'Team_info.parquet')
-        DF_TEAM_INFO.write_parquet(parquet_path)
-        message = f"Parquet file saved successfully at {parquet_path}."
-    elif format.lower() == 'lazyframe':
-        return DF_TEAM_INFO
-    else:
-        raise ValueError("Unsupported format. Choose 'csv', 'parquet', or 'lazyframe'.")
-    return None
-
-def get_player_details(matchid: int, seasonId: int, stageId: int, format: str = 'lazyframe') -> LazyFrame:
+def get_player_details(matchid: int, seasonId: int, stageId: int) -> PlayerDetailsSaver:
     """
     This function fetches player details from a game match.
 
@@ -205,10 +198,7 @@ def get_player_details(matchid: int, seasonId: int, stageId: int, format: str = 
         format (str): The format of the output file. Options are 'csv', 'parquet' or 'Lazyframe'. Default is 'Lazyframe'.
 
     Returns:
-        Depending on the chosen format:
-        - If 'csv', returns the path to the CSV file containing all games of the BO, and all player information within those games.
-        - If 'parquet', returns the path to the Parquet file containing all games of the BO, and all player information within those games.
-        - None: If an error occurs or the format is not supported.
+        LazyDataFrame
     """
     matchid = str(matchid)
     response = requests.get(API_URL_ROOT + API_ENDPOINT_DETAILS + matchid, headers=API_HEADERS)
@@ -542,36 +532,19 @@ def get_player_details(matchid: int, seasonId: int, stageId: int, format: str = 
     
     folder_path = os.path.join('Games', str(seasonId), str(stageId), str(matchid))
     os.makedirs(folder_path, exist_ok=True)
-    df_list = [
-                ('Player_Info', finals_dfs[0]),
-                ('Player_Trinket', finals_dfs[1]),
-                ('Player_Item', finals_dfs[2]),
-                ('Player_Player_Perks', finals_dfs[3]),
-                ('Player_Player_Perks_Runes', finals_dfs[4]),
-                ('Player_Batlle_Detail', finals_dfs[5]),
-                ('Player_Damege_Detail', finals_dfs[6]),
-                ('Player_Damege_Taken_Detail', finals_dfs[7]),
-                ('Player_Other_Detail', finals_dfs[8]),
-                ('Player_Vision_Detail', finals_dfs[9]),
-            ]
-    if format.lower() == 'lazyframe':
-        return {name: df for name, df in df_list}
-    saved_paths = []
-    try:
-        for df_name, df in df_list:
-            if format.lower() == 'csv':
-                file_path = os.path.join(folder_path, f'{df_name}.csv')
-                df.write_csv(file_path)
-            elif format.lower() == 'parquet':
-                file_path = os.path.join(folder_path, f'{df_name}.parquet')
-                df.write_parquet(file_path)
-            else:
-                raise ValueError("Unsupported format. Choose 'csv' or 'parquet'.")
-            saved_paths.append(file_path)
 
-        if format.lower() in ['csv', 'parquet']:
-            return ', '.join(saved_paths)
-    except Exception as e:
-        print(f"An error occurred while saving the files: {e}")
-        return None
+    df_list = [
+        ('Player_Info', finals_dfs[0]),
+        ('Player_Trinket', finals_dfs[1]),
+        ('Player_Item', finals_dfs[2]),
+        ('Player_Perks', finals_dfs[3]),
+        ('Player_Perks_Runes', finals_dfs[4]),
+        ('Player_Battle_Detail', finals_dfs[5]),
+        ('Player_Damage_Detail', finals_dfs[6]),
+        ('Player_Damage_Taken_Detail', finals_dfs[7]),
+        ('Player_Other_Detail', finals_dfs[8]),
+        ('Player_Vision_Detail', finals_dfs[9]),
+    ]
+
+    return PlayerDetailsSaver(df_list, folder_path)
 

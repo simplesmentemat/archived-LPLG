@@ -199,15 +199,29 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#commands" class="md-nav__link">
-    Commands
+  <a href="#getting-started" class="md-nav__link">
+    Getting Started
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#commands-overview" class="md-nav__link">
+    Commands Overview
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#project-structure" class="md-nav__link">
-    Project structure
+    Project Structure
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#example-usage" class="md-nav__link">
+    Example Usage
   </a>
   
 </li>
@@ -266,15 +280,29 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#commands" class="md-nav__link">
-    Commands
+  <a href="#getting-started" class="md-nav__link">
+    Getting Started
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#commands-overview" class="md-nav__link">
+    Commands Overview
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#project-structure" class="md-nav__link">
-    Project structure
+    Project Structure
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#example-usage" class="md-nav__link">
+    Example Usage
   </a>
   
 </li>
@@ -295,24 +323,44 @@
 
 
 <h1 id="welcome-to-lplg">Welcome to LPLG</h1>
-<p>Welcome to the official documentation of LPLG. LPLG is a powerful tool for accessing player and team data from the LPL, using LOLQQ as the database. This documentation will help you understand how to use the key functionalities of the library.</p>
-<h2 id="commands">Commands</h2>
+<p>Welcome to the official documentation for LPLG, an advanced tool created to extract comprehensive player and team data from the LPL using the LOLQQ database. This guide is designed to help you understand the library's essential functions and maximize its capabilities.</p>
+<h2 id="getting-started">Getting Started</h2>
+<p>Before using the commands, make sure to complete the necessary setup. This involves installing LPLG and configuring your environment to connect to the LOLQQ database.</p>
+<h2 id="commands-overview">Commands Overview</h2>
+<p>LPLG offers a variety of commands for different purposes:</p>
 <ul>
-<li><code>get_schedule_data()</code> - Retrieve the season data.</li>
-<li><code>get_stage_data()</code> - Retrieve the stages that occurred.</li>
-<li><code>get_match_data()</code> - Retrieve the match IDs and matches.</li>
-<li><code>get_team_details()</code> - Generate a CSV file of team information.</li>
-<li><code>get_player_details()</code> - Generate a CSV file of player information.</li>
+<li><code>get_schedule_data()</code>: Fetches the current season's scheduling information.</li>
+<li><code>get_stage_data()</code>: Retrieves details on the various stages of the season.</li>
+<li><code>get_match_data()</code>: Provides match IDs along with corresponding match details.</li>
+<li><code>get_team_details()</code>: Generates a CSV file containing detailed team profiles.</li>
+<li><code>get_player_details()</code>: Produces a CSV file with comprehensive player statistics.</li>
+<li><code>write_csv()</code>: Writes the retrieved data to a CSV file.</li>
+<li><code>write_parquet()</code>: Saves the data in a Parquet file format for efficient storage and retrieval.</li>
 </ul>
-<h2 id="project-structure">Project structure</h2>
-<pre><code>config/
-    config.py       
-docs/       
-    ...             
+<p>Each command is designed to return specific data sets; for detailed usage, refer to the function definitions in the <code>module/</code> directory.</p>
+<h2 id="project-structure">Project Structure</h2>
+<p>An understanding of the project structure will help you navigate and utilize the library more effectively:</p>
+<pre><code class="language-plaintext">config/
+    config.py       # Configuration settings and credentials
+docs/
+    ...             # Documentation files and usage examples
 module/
-    parse.py        
+    parse.py        # Parser functions for processing data queries
 schemas/
-    schemas.py
+    schemas.py      # Data schemas defining the structure of retrieved data sets
+</code></pre>
+<p>For further information, please refer to the documentation within each directory, which offers in-depth explanations of the modules and their configurations.</p>
+<h2 id="example-usage">Example Usage</h2>
+<p>Here's an example to demonstrate the usage of the newly added functions:</p>
+<pre><code class="language-python">from LPLGather import parse
+
+# Using write_csv() to save data as a CSV file
+df_example_csv = parse.get_match_data(190, 1).write_csv()
+print(df_example_csv)
+
+# Using write_parquet() to save data as a Parquet file
+df_example_parquet = parse.get_match_data(190, 1).write_parquet()
+print(df_example_parquet)
 </code></pre>
 
 

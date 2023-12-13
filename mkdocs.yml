@@ -4,6 +4,7 @@ nav:
    - Home: index.md
    - Functions: parse.md
 
+
 plugins:
   - mkdocstrings
 

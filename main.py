@@ -1,5 +1,5 @@
 from src.LPLGather import parse
 
-df = parse.get_player_details(10572,201,77).write_csv()
+df = parse.get_schedule_data().write_csv("schedule.csv")
 
 print(df)
